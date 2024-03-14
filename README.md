@@ -1,6 +1,7 @@
 ### To run
 - Run in debug mode to see console outputs.
 - You might have to name the parent directory of all these files `Test` but I'm not sure.
+- You don't need to do the whole "new c# project" thing, I think it should just work as is
 - Resize the window when it opens to get rid of the scroll bars (once I figure out how to set the window size from the code we won't have to worry about this)
 
 ### About the code
