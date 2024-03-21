@@ -6,7 +6,9 @@ public partial class Form1 : Form
 {
     private WebBrowser? browser;
     private System.Windows.Forms.Timer timer;
-    public Form1(bool host, IPAdress otherIP)
+    private Socket socket;
+    private EndPoint Remote;
+    public Form1(bool host, IPAddress otherIP)
     {
         InitializeComponent();
 
@@ -22,9 +24,9 @@ public partial class Form1 : Form
         browser.Navigate("file:///C:/Users/Nico/Desktop/school/network programming/Project/Test/vito.html");
         browser.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(documentLoadEventHandler);
         byte[] data = new byte[1024];
-        IPEndPoint ipep = new IPEndPoint(otherIp, 9050);
+        IPEndPoint ipep = new IPEndPoint(otherIP, 9050);
 
-        Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
         if (host) {
             // host binds to port
@@ -36,12 +38,7 @@ public partial class Form1 : Form
             socket.SendTo(data, 0, SocketFlags.None, ipep);
             Console.WriteLine("sent empty message");
         }
-        EndPoint Remote = new IPEndPoint(IPAddress.Any, 0);
-        int x = 0;
-        int y = 0;
-        byte[] x_bytes;
-        byte[] y_bytes;
-        byte[] both;
+        Remote = new IPEndPoint(IPAddress.Any, 0);
     }
 
     // handle when document loads, we can now call js functions
@@ -80,25 +77,26 @@ public partial class Form1 : Form
         // shouldnt be too difficult to go from here to the final product
         // we are just missing the networking aspect, which should be just sending the position back and forth over the network
         // maybe also a victory message to end the game for both players, but the clients could deduce that on their own also
-        Console.WriteLine("moving...");
-        browser.Document.InvokeScript("moveVitoX", [5]);
-        object? vitoX = browser.Document.InvokeScript("getVitoX");
-        Console.WriteLine("vito current x: " + vitoX);
+        
+        byte[] x_bytes;
+        byte[] y_bytes;
+        byte[] both;
 
         both = new byte[8];
-        
         socket.ReceiveFrom(both, ref Remote);
         x_bytes = both.Take(4).ToArray();
         y_bytes = both.TakeLast(4).ToArray();
         Console.WriteLine("recieved x: " + BitConverter.ToInt32(x_bytes) + ", y: " + BitConverter.ToInt32(y_bytes));
+        browser.Document.InvokeScript("updateOtherVito", [BitConverter.ToInt32(x_bytes), BitConverter.ToInt32(y_bytes), 1]);
     
-        Console.WriteLine("sending x: " + x + ", y: " + y);
-
-        x_bytes = BitConverter.GetBytes(x);
-        y_bytes = BitConverter.GetBytes(y);
+        object? _vitoX = browser.Document.InvokeScript("getVitoX");
+        object? _vitoY = browser.Document.InvokeScript("getVitoY");
+        int vitoX = int.Parse(_vitoX.ToString());
+        int vitoY = int.Parse(_vitoY.ToString());
+        Console.WriteLine("sending x: " + vitoX + ", y: " + vitoY);
+        x_bytes = BitConverter.GetBytes(vitoX);
+        y_bytes = BitConverter.GetBytes(vitoY);
         both = x_bytes.Concat(y_bytes).ToArray();
         socket.SendTo(both, Remote);
-        x += host ? 1 : -1;
-        y += host ? 10 : -10;
     }
 }
