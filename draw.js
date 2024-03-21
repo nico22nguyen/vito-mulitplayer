@@ -54,53 +54,63 @@ var drawBackground = function drawBackground(xPos, yPos, context) {
   drawPlats(xPos, yPos, context);
 };
 
+var invertColor = function invertColor(colorString, doInversion) {
+  if (!doInversion) return colorString
+  color = parseInt(colorString.substring(1), 16)
+  inverted = parseInt('FFFFFF', 16) - color
+  console.log('original: ' + colorString + ', inverted: ' + '#' + inverted.toString(16).padStart(6, '0'))
+  return '#' + inverted.toString(16).padStart(6, '0')
+}
+
 /**
  * IMPORTANT**: vito is drawn from the bottom center, between his shoes
  * This function works by taking the "center of mass" of vito's body parts,
  * and reflecting them by an offset depending on the direction
  */
-var drawVito = function drawVito(x, y, unitDirection, context) {
-  y = VIRTUAL_Y_0 - y;
+var drawVito = function drawVito(_vito, x, y, context) {
+  var position = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 'relative';
+  var doColorInversion = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : false;
+  if (position == 'relative') y = VIRTUAL_Y_0 - y;
 
   // body
-  context.fillStyle = 'red';
+  context.fillStyle = invertColor('#FF0000', doColorInversion);
   context.fillRect(x - 20, y - 92.5, 40, 60);
 
   // overalls
   var LEGS_CENTER = -17.5;
   var BELLY_CENTER = 7.5;
-  context.fillStyle = OVERALL_COLOR;
-  context.fillRect(x + LEGS_CENTER + 2.5 * unitDirection, y - 67.5, 35, 35);
-  context.fillRect(x + LEGS_CENTER - 2.5 * unitDirection, y - 32.5, 10, 30);
-  context.fillRect(x + BELLY_CENTER - 2.5 * unitDirection, y - 32.5, 10, 30);
+  context.fillStyle = invertColor(OVERALL_COLOR, doColorInversion);
+  context.fillRect(x + LEGS_CENTER + 2.5 * _vito.direction, y - 67.5, 35, 35);
+  context.fillRect(x + LEGS_CENTER - 2.5 * _vito.direction, y - 32.5, 10, 30);
+  context.fillRect(x + BELLY_CENTER - 2.5 * _vito.direction, y - 32.5, 10, 30);
 
   // button
-  context.fillStyle = OVERALL_BUTTON_COLOR;
+  context.fillStyle = invertColor(OVERALL_BUTTON_COLOR, doColorInversion);
   context.beginPath();
-  context.arc(x + 12.5 * unitDirection, y - 60, 5, 0, 2 * Math.PI);
+  context.arc(x + 12.5 * _vito.direction, y - 60, 5, 0, 2 * Math.PI);
   context.fill();
 
   // head
-  context.fillStyle = 'yellow';
+  context.fillStyle = invertColor('#FFFF00', doColorInversion);
   context.fillRect(x - 25, y - 117.5, 50, 45);
-  context.fillStyle = 'black';
+  context.fillStyle = invertColor('#000000', doColorInversion);
   context.beginPath();
-  context.arc(x + 20 * unitDirection, y - 92.5, 2.5, 0, 2 * Math.PI);
+  context.arc(x + 20 * _vito.direction, y - 92.5, 2.5, 0, 2 * Math.PI);
   context.fill();
 
   // hat
   var HAT_CENTER = -30;
-  context.fillStyle = 'red';
-  context.fillRect(x + HAT_CENTER + 5 * unitDirection, y - 122.5, 60, 20);
+  context.fillStyle = invertColor('#FF0000', doColorInversion);
+  context.fillRect(x + HAT_CENTER + 5 * _vito.direction, y - 122.5, 60, 20);
 
   // shoes
   var SHOE_CENTER = -10;
-  context.fillStyle = SHOE_COLOR;
-  context.fillRect(x + SHOE_CENTER + 10 * -unitDirection, y - 7.5, SHOE_WIDTH, 7.5);
-  context.fillRect(x + SHOE_CENTER + 15 * unitDirection, y - 7.5, SHOE_WIDTH, 7.5);
+  context.fillStyle = invertColor(SHOE_COLOR, doColorInversion);
+  context.fillRect(x + SHOE_CENTER + 10 * -_vito.direction, y - 7.5, SHOE_WIDTH, 7.5);
+  context.fillRect(x + SHOE_CENTER + 15 * _vito.direction, y - 7.5, SHOE_WIDTH, 7.5);
 
   // arm
   ARM_CENTER = -2.5;
-  context.fillStyle = 'red';
-  context.fillRect(x + ARM_CENTER + 22.5 * -unitDirection, y - 67.5, 5, 35);
+  context.fillStyle = invertColor('#FF0000', doColorInversion);
+  context.fillRect(x + ARM_CENTER + 22.5 * -_vito.direction, y - 67.5, 5, 35);
 };

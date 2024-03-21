@@ -31,6 +31,7 @@ var keys = {};
 var platforms = [];
 var cloudLevels = [];
 var vito = new Vito(0, 0);
+var otherVito = new Vito(0, 0);
 var tick = function tick(context) {
   vito.adjustY();
   vito.adjustX();
@@ -38,7 +39,8 @@ var tick = function tick(context) {
   // background moves in the opposite direction of vito, hence -x
   drawBackground(-vito.x, vito.y, context);
   updateCloudPositions();
-  drawVito(SCREEN_WIDTH / 2, 0, vito.direction, context);
+  drawVito(otherVito, SCREEN_WIDTH / 2 + otherVito.x - vito.x, vito.y - otherVito.y + VIRTUAL_Y_0, context, 'absolute', true);
+  drawVito(vito, SCREEN_WIDTH / 2, 0, context);
 };
 var run = function run() {
   var canvas = document.getElementById('canvas');

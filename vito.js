@@ -3,11 +3,16 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); Object.defineProperty(Constructor, "prototype", { writable: false }); return Constructor; }
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 function _defineProperty(obj, key, value) { key = _toPropertyKey(key); if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : String(i); }
+function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
-var Vito = /*#__PURE__*/_createClass(function Vito(x, y) {
+var Vito = /*#__PURE__*/_createClass(function Vito(_x, _y) {
   var _this = this;
   _classCallCheck(this, Vito);
+  _defineProperty(this, "forceState", function (x, y, dir) {
+    _this.x = x;
+    _this.y = y;
+    _this.direction = dir;
+  });
   _defineProperty(this, "adjustY", function () {
     // can't go below the ground
     if (_this.y < 0) {
@@ -63,8 +68,8 @@ var Vito = /*#__PURE__*/_createClass(function Vito(x, y) {
     }
     _this.x += X_VELOCITY * _this.direction;
   });
-  this.x = x;
-  this.y = y;
+  this.x = _x;
+  this.y = _y;
   this.yVelocity = 0;
   this.direction = 1;
 });
