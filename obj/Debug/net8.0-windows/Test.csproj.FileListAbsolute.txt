@@ -12,3 +12,4 @@ C:\Users\Nico\Desktop\school\network programming\Project\Test\obj\Debug\net8.0-w
 C:\Users\Nico\Desktop\school\network programming\Project\Test\obj\Debug\net8.0-windows\Test.pdb
 C:\Users\Nico\Desktop\school\network programming\Project\Test\obj\Debug\net8.0-windows\Test.genruntimeconfig.cache
 C:\Users\Nico\Desktop\school\network programming\Project\Test\obj\Debug\net8.0-windows\ref\Test.dll
+C:\Users\Nico\Desktop\school\network programming\Project\Test\obj\Debug\net8.0-windows\Test.sourcelink.json
