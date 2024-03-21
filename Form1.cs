@@ -1,10 +1,12 @@
 namespace Test;
+using System.Net;
+using System.Net.Sockets;
 
 public partial class Form1 : Form
 {
     private WebBrowser? browser;
     private System.Windows.Forms.Timer timer;
-    public Form1()
+    public Form1(bool host, IPAdress otherIP)
     {
         InitializeComponent();
 
@@ -19,6 +21,27 @@ public partial class Form1 : Form
         Controls.Add(browser);
         browser.Navigate("file:///C:/Users/Nico/Desktop/school/network programming/Project/Test/vito.html");
         browser.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(documentLoadEventHandler);
+        byte[] data = new byte[1024];
+        IPEndPoint ipep = new IPEndPoint(otherIp, 9050);
+
+        Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+
+        if (host) {
+            // host binds to port
+            socket.Bind(ipep);
+            Console.WriteLine("Waiting for another player to connect...");
+        } else {
+            // send message to start connection
+            // doesnt work if server isnt listening yet... need to have acknowledgement or something
+            socket.SendTo(data, 0, SocketFlags.None, ipep);
+            Console.WriteLine("sent empty message");
+        }
+        EndPoint Remote = new IPEndPoint(IPAddress.Any, 0);
+        int x = 0;
+        int y = 0;
+        byte[] x_bytes;
+        byte[] y_bytes;
+        byte[] both;
     }
 
     // handle when document loads, we can now call js functions
@@ -61,5 +84,21 @@ public partial class Form1 : Form
         browser.Document.InvokeScript("moveVitoX", [5]);
         object? vitoX = browser.Document.InvokeScript("getVitoX");
         Console.WriteLine("vito current x: " + vitoX);
+
+        both = new byte[8];
+        
+        socket.ReceiveFrom(both, ref Remote);
+        x_bytes = both.Take(4).ToArray();
+        y_bytes = both.TakeLast(4).ToArray();
+        Console.WriteLine("recieved x: " + BitConverter.ToInt32(x_bytes) + ", y: " + BitConverter.ToInt32(y_bytes));
+    
+        Console.WriteLine("sending x: " + x + ", y: " + y);
+
+        x_bytes = BitConverter.GetBytes(x);
+        y_bytes = BitConverter.GetBytes(y);
+        both = x_bytes.Concat(y_bytes).ToArray();
+        socket.SendTo(both, Remote);
+        x += host ? 1 : -1;
+        y += host ? 10 : -10;
     }
 }
