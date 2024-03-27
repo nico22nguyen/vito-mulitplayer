@@ -21,7 +21,8 @@ public partial class Form1 : Form
             Dock = DockStyle.Fill
         };
         Controls.Add(browser);
-        browser.Navigate("file:///C:/Users/Nico/Desktop/school/network programming/Project/Test/vito.html");
+        string htmlPath = Path.Combine(getProjectRootDir(), "vito.html");
+        browser.Navigate(htmlPath);
         browser.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(documentLoadEventHandler);
         byte[] data = new byte[1024];
         IPEndPoint ipep = new IPEndPoint(otherIP, 9050);
@@ -39,6 +40,13 @@ public partial class Form1 : Form
             Console.WriteLine("sent empty message");
         }
         Remote = new IPEndPoint(IPAddress.Any, 0);
+    }
+
+    private static string getProjectRootDir() {
+        string toRemove = "bin\\Debug\\net8.0-windows\\";
+        string basePath = Application.StartupPath;
+        string projectRoot = basePath.Substring(0, basePath.Length - toRemove.Length);
+        return projectRoot;
     }
 
     // handle when document loads, we can now call js functions
