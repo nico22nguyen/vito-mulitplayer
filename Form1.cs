@@ -88,23 +88,29 @@ public partial class Form1 : Form
         
         byte[] x_bytes;
         byte[] y_bytes;
-        byte[] both;
+        byte[] dir_bytes;
+        byte[] vito_state;
 
-        both = new byte[8];
-        socket.ReceiveFrom(both, ref Remote);
-        x_bytes = both.Take(4).ToArray();
-        y_bytes = both.TakeLast(4).ToArray();
-        Console.WriteLine("recieved x: " + BitConverter.ToInt32(x_bytes) + ", y: " + BitConverter.ToInt32(y_bytes));
-        browser.Document.InvokeScript("updateOtherVito", [BitConverter.ToInt32(x_bytes), BitConverter.ToInt32(y_bytes), 1]);
+        vito_state = new byte[12];
+        socket.ReceiveFrom(vito_state, ref Remote);
+        x_bytes = vito_state.Take(4).ToArray();
+        y_bytes = vito_state.Skip(4).Take(4).ToArray();
+        dir_bytes = vito_state.TakeLast(4).ToArray();
+
+        Console.WriteLine("recieved x: " + BitConverter.ToInt32(x_bytes) + ", y: " + BitConverter.ToInt32(y_bytes) + ", dir: " + BitConverter.ToInt32(dir_bytes));
+        browser.Document.InvokeScript("updateOtherVito", [BitConverter.ToInt32(x_bytes), BitConverter.ToInt32(y_bytes), BitConverter.ToInt32(dir_bytes)]);
     
         object? _vitoX = browser.Document.InvokeScript("getVitoX");
         object? _vitoY = browser.Document.InvokeScript("getVitoY");
+        object? _vitoDir = browser.Document.InvokeScript("getVitoDirection");
         int vitoX = int.Parse(_vitoX.ToString());
         int vitoY = int.Parse(_vitoY.ToString());
-        Console.WriteLine("sending x: " + vitoX + ", y: " + vitoY);
+        int vitoDir = int.Parse(_vitoDir.ToString());
+        Console.WriteLine("sending x: " + vitoX + ", y: " + vitoY + ", dir: " + vitoDir);
         x_bytes = BitConverter.GetBytes(vitoX);
         y_bytes = BitConverter.GetBytes(vitoY);
-        both = x_bytes.Concat(y_bytes).ToArray();
-        socket.SendTo(both, Remote);
+        dir_bytes = BitConverter.GetBytes(vitoDir);
+        vito_state = x_bytes.Concat(y_bytes).Concat(dir_bytes).ToArray();
+        socket.SendTo(vito_state, Remote);
     }
 }
