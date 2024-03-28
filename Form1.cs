@@ -55,18 +55,16 @@ public partial class Form1 : Form
 
         var timer = new System.Windows.Forms.Timer();
         timer.Tick += new EventHandler(TimerEventProcessor);
-        timer.Interval = 1000 / 40;
+        timer.Interval = 1000 / 40; // Ideally the rate should match the js draw rate to avoid jitteriness in the game, we could even pull it directly from the js code
         timer.Start();
     }
 
     /** 
      * This is our 'tick' function, it should look like:
-     * 1. Get OUR character's position from js
-     * 2. Send to other player over network
-     * 3. Receive other player's position over network
-     * 4. Set OTHER character's position in js
-     * 
-     * Ideally the rate should match the js draw rate to avoid jitteriness in the game, we could even pull it directly from the js code
+     * 1. Receive other player's position over network
+     * 2. Set OTHER character's position in js
+     * 3. Get OUR character's position from js
+     * 4. Send to other player over network
     */ 
     private void TimerEventProcessor(object? myObject, EventArgs myEventArgs) {
         // some null checks to make sure we can access properties
@@ -79,37 +77,40 @@ public partial class Form1 : Form
             return;
         }
 
-        // right now, just a proof of concept.
-        // first function moves the player, second function gets his position
-        // shows that we are able to read and write successfully from the JS
-        // shouldnt be too difficult to go from here to the final product
-        // we are just missing the networking aspect, which should be just sending the position back and forth over the network
-        // maybe also a victory message to end the game for both players, but the clients could deduce that on their own also
-        
+        // declare vars
         byte[] x_bytes;
         byte[] y_bytes;
         byte[] dir_bytes;
         byte[] vito_state;
 
+        // (1) receive other vito state from other player
         vito_state = new byte[12];
         socket.ReceiveFrom(vito_state, ref Remote);
+
+        // break state into usable values
         x_bytes = vito_state.Take(4).ToArray();
         y_bytes = vito_state.Skip(4).Take(4).ToArray();
         dir_bytes = vito_state.TakeLast(4).ToArray();
 
+        // (2) update other vito state in our js
         Console.WriteLine("recieved x: " + BitConverter.ToInt32(x_bytes) + ", y: " + BitConverter.ToInt32(y_bytes) + ", dir: " + BitConverter.ToInt32(dir_bytes));
         browser.Document.InvokeScript("updateOtherVito", [BitConverter.ToInt32(x_bytes), BitConverter.ToInt32(y_bytes), BitConverter.ToInt32(dir_bytes)]);
     
+        // (3) get our vito's state from js
         object? _vitoX = browser.Document.InvokeScript("getVitoX");
         object? _vitoY = browser.Document.InvokeScript("getVitoY");
         object? _vitoDir = browser.Document.InvokeScript("getVitoDirection");
         int vitoX = int.Parse(_vitoX.ToString());
         int vitoY = int.Parse(_vitoY.ToString());
         int vitoDir = int.Parse(_vitoDir.ToString());
-        Console.WriteLine("sending x: " + vitoX + ", y: " + vitoY + ", dir: " + vitoDir);
+
+        // convert state values (ints) to bytes for transmission
         x_bytes = BitConverter.GetBytes(vitoX);
         y_bytes = BitConverter.GetBytes(vitoY);
         dir_bytes = BitConverter.GetBytes(vitoDir);
+
+        // (4) send our vito's state to other player
+        Console.WriteLine("sending x: " + vitoX + ", y: " + vitoY + ", dir: " + vitoDir);
         vito_state = x_bytes.Concat(y_bytes).Concat(dir_bytes).ToArray();
         socket.SendTo(vito_state, Remote);
     }
