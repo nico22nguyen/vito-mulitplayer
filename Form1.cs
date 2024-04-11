@@ -97,12 +97,13 @@ public partial class Form1 : Form
         Console.WriteLine("recieved x: " + BitConverter.ToInt32(x_bytes) + ", y: " + BitConverter.ToInt32(y_bytes) + ", dir: " + BitConverter.ToInt32(dir_bytes));
         browser.Document.InvokeScript("updateOtherVito", [BitConverter.ToInt32(x_bytes), BitConverter.ToInt32(y_bytes), BitConverter.ToInt32(dir_bytes)]);
 
-        /* HOW TO COORDINATE PLATFORMS WITH CLIENT*/
-        /* get platforms (as string) using `getPlatforms` js method */
-        /* DO NOT MODIFY THE STRING */
-        /* send this string directly to the client */
-        /* on the client side, simply pass the string to js using `setPlatforms` and it will parse it correctly */
-        /* all this should happen in the setup phase with the client, NOT in the actual game loop since this only needs to happen once */
+        /** HOW TO COORDINATE PLATFORMS WITH CLIENT
+         * get platforms (as string) using `getPlatforms` js method 
+         * DO NOT MODIFY THE STRING 
+         * send this string directly to the client
+         * on the client side, simply pass the string to js using `setPlatforms` and it will parse it correctly
+         * all this should happen in the setup phase with the client, NOT in the actual game loop since this only needs to happen once
+         */
 
         /* Here's some examples of how to call the js functions */
         object? plats_string = browser.Document.InvokeScript("getPlatforms"); // you will send this to client over networks
