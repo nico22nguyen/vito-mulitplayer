@@ -7,6 +7,8 @@
 ### About the code
 - **All you have to worry about is Form.cs and zzz.js**, you can ignore all other files for now.
 - Form.cs is the C# side, and we can write all our javascript in zzz.js for now, there shouldn't be much to write though in fact what's in there now might even be enough
+- The Form knows whether it is client or server by the `host` parameter passed when instantiating a new Form.
+- The Form code is either Server or Client, depending on whether `host` is true.
 - (You can read through the js files if you want, but it's not necessary)
 - p.s. vito.js has been transpiled so it's not very readable, let me know if you want the original readable js file
 
