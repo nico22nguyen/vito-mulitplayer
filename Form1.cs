@@ -54,7 +54,6 @@ public partial class Form1 : Form
     private void documentLoadEventHandler(object? sender, WebBrowserDocumentCompletedEventArgs e) {
         if (browser == null)  throw new Exception("Browser is null");
         if (browser.Document == null) throw new Exception("browser.Document is null");
-        Console.WriteLine("This is handler");
 
         byte[] data = new byte[1024];
         if (isHost) {
@@ -62,7 +61,6 @@ public partial class Form1 : Form
             socket.Bind(ipep);
 
             // listen for init message from client
-            Console.WriteLine("Waiting for another player to connect...");
             socket.ReceiveFrom(data, ref Remote);
 
             // get platforms from document
@@ -74,12 +72,10 @@ public partial class Form1 : Form
             byte[] platBytes = Encoding.ASCII.GetBytes(plats_string);
 
             // send platform message in the format: [string length (4 bytes), platform string ({strLength} bytes)] 
-            Console.WriteLine("sending platform string: " + plats_string);
             socket.SendTo(platStringLength.Concat(platBytes).ToArray(), Remote);
         } else {
             // server is waiting for message, send something to "wake it up"
             socket.SendTo(data, 0, SocketFlags.None, ipep);
-            Console.WriteLine("sent empty message");
 
             /* server will first send platform data so that players play on the same randomly generated layout */
             byte [] platData = new byte[2048];
@@ -92,7 +88,6 @@ public partial class Form1 : Form
             // get all platform string bytes
             byte[] platBytes = platData.Skip(4).Take(platStringLength).ToArray();
             string plats_string = Encoding.ASCII.GetString(platBytes);
-            Console.WriteLine("received plat string: "+ plats_string);
 
             // set the platforms in document
             browser.Document.InvokeScript("setPlatforms", [plats_string]);
@@ -132,7 +127,6 @@ public partial class Form1 : Form
         dir_bytes = vito_state.TakeLast(4).ToArray();
 
         // (2) update other vito state in our js
-        Console.WriteLine("recieved x: " + BitConverter.ToInt32(x_bytes) + ", y: " + BitConverter.ToInt32(y_bytes) + ", dir: " + BitConverter.ToInt32(dir_bytes));
         browser.Document.InvokeScript("updateOtherVito", [BitConverter.ToInt32(x_bytes), BitConverter.ToInt32(y_bytes), BitConverter.ToInt32(dir_bytes)]);
     
         // (3) get our vito's state from js
@@ -146,7 +140,6 @@ public partial class Form1 : Form
         dir_bytes = BitConverter.GetBytes(vitoDir);
 
         // (4) send our vito's state to other player
-        Console.WriteLine("sending x: " + vitoX + ", y: " + vitoY + ", dir: " + vitoDir);
         vito_state = x_bytes.Concat(y_bytes).Concat(dir_bytes).ToArray();
         socket.SendTo(vito_state, Remote);
     }
