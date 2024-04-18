@@ -38,18 +38,24 @@ public partial class Form1 : Form
         return projectRoot;
     }
 
+    // do all error checks around InvokeScript
+    private object safeInvoke(string scriptName) {
+        if (browser == null)  throw new Exception("Browser is null");
+        if (browser.Document == null) throw new Exception("browser.Document is null");
+        if (scriptName.Length == 0) throw new Exception("Expected function name as argument");
+
+        object? result = browser.Document.InvokeScript(scriptName);
+        if (result == null) throw new Exception("InvokeScript(" + scriptName + ") returned null");
+
+        return result;
+    }
+
     // handle when document loads, we can now call js functions
     private void documentLoadEventHandler(object? sender, WebBrowserDocumentCompletedEventArgs e) {
+        if (browser == null)  throw new Exception("Browser is null");
+        if (browser.Document == null) throw new Exception("browser.Document is null");
         Console.WriteLine("This is handler");
 
-        // some null checks to make sure we can access properties
-        if (browser == null) {
-            throw new Exception("Browser is null");
-        }
-        if (browser.Document == null) {
-            throw new Exception("browser.Document is null");
-        }
-        
         byte[] data = new byte[1024];
         if (isHost) {
             // host binds to port
@@ -60,21 +66,15 @@ public partial class Form1 : Form
             socket.ReceiveFrom(data, ref Remote);
 
             // get platforms from document
-            object? plats_obj = browser.Document.InvokeScript("getPlatforms");
-            if (plats_obj == null) {
-                throw new Exception("platforms string was null");
-            }
-            string? plats_string = plats_obj.ToString();
-            Console.WriteLine("sending plat string: "+ plats_string);
-            if (plats_string == null) {
-                throw new Exception("platforms string was null");
-            }
+            object plats_obj = safeInvoke("getPlatforms");
+            string plats_string = plats_obj.ToString() ?? "";
 
             // convert platform data to bytes
             byte[] platStringLength = BitConverter.GetBytes(plats_string.Length);
             byte[] platBytes = Encoding.ASCII.GetBytes(plats_string);
 
             // send platform message in the format: [string length (4 bytes), platform string ({strLength} bytes)] 
+            Console.WriteLine("sending platform string: " + plats_string);
             socket.SendTo(platStringLength.Concat(platBytes).ToArray(), Remote);
         } else {
             // server is waiting for message, send something to "wake it up"
@@ -115,15 +115,8 @@ public partial class Form1 : Form
      * 4. Send to other player over network
     */ 
     private void TimerEventProcessor(object? myObject, EventArgs myEventArgs) {
-        // some null checks to make sure we can access properties
-        if (browser == null) {
-            throw new Exception("Browser is null");
-        }
-        if (browser.Document == null) {
-            throw new Exception("browser.Document is null");
-        }
-
-        // declare vars
+        if (browser == null)  throw new Exception("Browser is null");
+        if (browser.Document == null) throw new Exception("browser.Document is null");
         byte[] x_bytes;
         byte[] y_bytes;
         byte[] dir_bytes;
@@ -143,12 +136,9 @@ public partial class Form1 : Form
         browser.Document.InvokeScript("updateOtherVito", [BitConverter.ToInt32(x_bytes), BitConverter.ToInt32(y_bytes), BitConverter.ToInt32(dir_bytes)]);
     
         // (3) get our vito's state from js
-        object? _vitoX = browser.Document.InvokeScript("getVitoX");
-        object? _vitoY = browser.Document.InvokeScript("getVitoY");
-        object? _vitoDir = browser.Document.InvokeScript("getVitoDirection");
-        int vitoX = int.Parse(_vitoX.ToString());
-        int vitoY = int.Parse(_vitoY.ToString());
-        int vitoDir = int.Parse(_vitoDir.ToString());
+        int vitoX = (int) safeInvoke("getVitoX");
+        int vitoY = (int) safeInvoke("getVitoY");
+        int vitoDir = (int) safeInvoke("getVitoDirection");
 
         // convert state values (ints) to bytes for transmission
         x_bytes = BitConverter.GetBytes(vitoX);
