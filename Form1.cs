@@ -1,22 +1,26 @@
 namespace Test;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
+using System.Text;
 
 public partial class Form1 : Form
 {
+    private bool isHost;
     private WebBrowser? browser;
-    private System.Windows.Forms.Timer timer;
     private Socket socket;
     private EndPoint Remote;
+    private IPEndPoint ipep;
     public Form1(bool host, IPAddress otherIP)
     {
         InitializeComponent();
+        isHost = host;
 
-        timer = new System.Windows.Forms.Timer();
-        timer.Tick += new EventHandler(TimerEventProcessor);
-        timer.Interval = 1000 / 40;
+        // set up network references used for communication    
+        ipep = new IPEndPoint(otherIP, 9050);
+        socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        Remote = new IPEndPoint(IPAddress.Any, 0);
 
+        // initialize browser and load html
         browser = new WebBrowser
         {
             Dock = DockStyle.Fill
@@ -25,22 +29,6 @@ public partial class Form1 : Form
         string htmlPath = Path.Combine(getProjectRootDir(), "vito.html");
         browser.Navigate(htmlPath);
         browser.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(documentLoadEventHandler);
-        byte[] data = new byte[1024];
-        IPEndPoint ipep = new IPEndPoint(otherIP, 9050);
-
-        socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-
-        if (host) {
-            // host binds to port
-            socket.Bind(ipep);
-            Console.WriteLine("Waiting for another player to connect...");
-        } else {
-            // send message to start connection
-            // doesnt work if server isnt listening yet... need to have acknowledgement or something
-            socket.SendTo(data, 0, SocketFlags.None, ipep);
-            Console.WriteLine("sent empty message");
-        }
-        Remote = new IPEndPoint(IPAddress.Any, 0);
     }
 
     private static string getProjectRootDir() {
@@ -53,6 +41,65 @@ public partial class Form1 : Form
     // handle when document loads, we can now call js functions
     private void documentLoadEventHandler(object? sender, WebBrowserDocumentCompletedEventArgs e) {
         Console.WriteLine("This is handler");
+
+        // some null checks to make sure we can access properties
+        if (browser == null) {
+            throw new Exception("Browser is null");
+        }
+        if (browser.Document == null) {
+            throw new Exception("browser.Document is null");
+        }
+        
+        byte[] data = new byte[1024];
+        if (isHost) {
+            // host binds to port
+            socket.Bind(ipep);
+
+            // listen for init message from client
+            Console.WriteLine("Waiting for another player to connect...");
+            socket.ReceiveFrom(data, ref Remote);
+
+            // get platforms from document
+            object? plats_obj = browser.Document.InvokeScript("getPlatforms");
+            if (plats_obj == null) {
+                throw new Exception("platforms string was null");
+            }
+            string? plats_string = plats_obj.ToString();
+            Console.WriteLine("sending plat string: "+ plats_string);
+            if (plats_string == null) {
+                throw new Exception("platforms string was null");
+            }
+
+            // convert platform data to bytes
+            byte[] platStringLength = BitConverter.GetBytes(plats_string.Length);
+            byte[] platBytes = Encoding.ASCII.GetBytes(plats_string);
+
+            // send platform message in the format: [string length (4 bytes), platform string ({strLength} bytes)] 
+            socket.SendTo(platStringLength.Concat(platBytes).ToArray(), Remote);
+        } else {
+            // server is waiting for message, send something to "wake it up"
+            socket.SendTo(data, 0, SocketFlags.None, ipep);
+            Console.WriteLine("sent empty message");
+
+            /* server will first send platform data so that players play on the same randomly generated layout */
+            byte [] platData = new byte[2048];
+            socket.ReceiveFrom(platData, ref Remote);
+
+            // first 4 bytes are platform JSON string length
+            byte[] platStringLengthBytes = platData.Take(4).ToArray();
+            int platStringLength = BitConverter.ToInt32(platStringLengthBytes);
+
+            // get all platform string bytes
+            byte[] platBytes = platData.Skip(4).Take(platStringLength).ToArray();
+            string plats_string = Encoding.ASCII.GetString(platBytes);
+            Console.WriteLine("received plat string: "+ plats_string);
+
+            // set the platforms in document
+            browser.Document.InvokeScript("setPlatforms", [plats_string]);
+
+            // server is listening for our player position, send (0, 0)
+            socket.SendTo(data, 0, SocketFlags.None, ipep);
+        }
 
         var timer = new System.Windows.Forms.Timer();
         timer.Tick += new EventHandler(TimerEventProcessor);
@@ -70,12 +117,10 @@ public partial class Form1 : Form
     private void TimerEventProcessor(object? myObject, EventArgs myEventArgs) {
         // some null checks to make sure we can access properties
         if (browser == null) {
-            Console.WriteLine("Browser is null");
-            return;
+            throw new Exception("Browser is null");
         }
         if (browser.Document == null) {
-            Console.WriteLine("browser.Document is null");
-            return;
+            throw new Exception("browser.Document is null");
         }
 
         // declare vars
@@ -96,19 +141,6 @@ public partial class Form1 : Form
         // (2) update other vito state in our js
         Console.WriteLine("recieved x: " + BitConverter.ToInt32(x_bytes) + ", y: " + BitConverter.ToInt32(y_bytes) + ", dir: " + BitConverter.ToInt32(dir_bytes));
         browser.Document.InvokeScript("updateOtherVito", [BitConverter.ToInt32(x_bytes), BitConverter.ToInt32(y_bytes), BitConverter.ToInt32(dir_bytes)]);
-
-        /** HOW TO COORDINATE PLATFORMS WITH CLIENT
-         * get platforms (as string) using `getPlatforms` js method 
-         * DO NOT MODIFY THE STRING 
-         * send this string directly to the client
-         * on the client side, simply pass the string to js using `setPlatforms` and it will parse it correctly
-         * all this should happen in the setup phase with the client, NOT in the actual game loop since this only needs to happen once
-         */
-
-        /* Here's some examples of how to call the js functions */
-        object? plats_string = browser.Document.InvokeScript("getPlatforms"); // you will send this to client over networks
-        string test_plats = "[{\"x\": 1, \"y\": 2}, {\"x\": 3, \"y\": 4}]"; // pretend this is what we (client) received from server
-        browser.Document.InvokeScript("setPlatforms", [test_plats]); // this is how you give it to client's js code
     
         // (3) get our vito's state from js
         object? _vitoX = browser.Document.InvokeScript("getVitoX");
